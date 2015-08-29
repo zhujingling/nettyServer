@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:websocket="http://www.springframework.org/schema/websocket"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/websocket http://www.springframework.org/schema/websocket/spring-websocket.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		 http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd ">
+
+
+  <!-- 扫描service自动注入为bean -->
+    <context:component-scan base-package="com.netty.service.impl,com.netty.dao.impl" />
+
+    <aop:aspectj-autoproxy proxy-target-class="true" />
+<!-- 导入资源文件 -->  
+	<context:property-placeholder location="classpath:db.properties"/>
+	<!-- 配置 C3P0 数据源 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="user" value="${mysqlusername}"></property>
+		<property name="password" value="${mysqlpassword}"></property>
+		<property name="driverClass" value="${mysqldriver}"></property>
+		<property name="jdbcUrl" value="${mysqlurl}"></property>
+		
+		<property name="initialPoolSize" value="${mysqlinitPoolSize}"></property>
+		<property name="maxPoolSize" value="${mysqlmaxPoolSize}"></property>
+	</bean>
+
+	<!-- 配置 mysql的SessionFactory -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="configLocation" value="classpath:mysqlHibernate.cfg.xml"></property>
+		<property name="packagesToScan" value="com.netty.entity" ></property>
+	</bean>
+	
+
+<!-- 配置事务管理器 -->
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	<!-- 配置事务增强处理Bean，指定事务管理器 -->
+	<tx:advice id="transactionAdvice" transaction-manager="transactionManager">
+		<!-- 配置详细事务处理语义 -->
+		<tx:attributes>
+			<tx:method name="insert*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="delete*" propagation="REQUIRED" />			
+			<tx:method name="add*" propagation="REQUIRED" />
+			<tx:method name="modify*" propagation="REQUIRED" />
+
+			<tx:method name="get*" propagation="REQUIRED" read-only="true" />
+			<tx:method name="find*" propagation="REQUIRED" read-only="true" />
+			<tx:method name="select*" propagation="REQUIRED" read-only="true" />
+			<tx:method name="load*" propagation="REQUIRED" read-only="true" />
+
+			<!-- 其他采用默认事务方式 -->
+			<tx:method name="*"  propagation="REQUIRED" read-only="true"  />
+
+		</tx:attributes>
+	</tx:advice>
+	<!-- Spring aop事务管理 -->
+	<aop:config>
+		<!-- 配置切入点 -->
+		<aop:pointcut id="transactionPointcut"
+			expression="execution(* com.netty.service..*Impl.*(..))" />
+		<!-- 指定在txAdvice切入点应用txAdvice事务增强处理 -->
+		<aop:advisor pointcut-ref="transactionPointcut"
+			advice-ref="transactionAdvice" />
+	</aop:config>
+
+</beans>
