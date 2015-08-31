@@ -45,26 +45,6 @@ public class NettyServerHandler extends ChannelHandlerAdapter {
 	        } else if (msg instanceof WebSocketFrame) {
 	        	NettyServerProxy.handleWebSocketFrame(ctx, (WebSocketFrame) msg);
 	        }
-//		try {
-//			MessagePkg reqpkg = (MessagePkg) msg;
-//			MessagePkg resPkg;
-//			switch (reqpkg.getCmd()) {
-//			case Command.USER.UC_USER_INFO:
-//				resPkg = MessagePkg.rawPkg();
-//				resPkg.setCmd(Command.USER.UC_USER_INFO);
-//				resPkg.setMessage(userService.getUserInfo());
-//				break;
-//			default:
-//				resPkg = MessagePkg.rawPkg();
-//				resPkg.setMessage("未找到命令");
-//				break;
-//			}
-//			ctx.write(resPkg);
-//			ctx.flush();
-//		} catch (Exception e) {
-//			// TODO: handle exception
-//			e.printStackTrace();
-//		}
 		
 	}
 
