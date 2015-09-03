@@ -73,7 +73,7 @@ public class NettyServerHandler extends ChannelHandlerAdapter {
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
 		Channel incoming = ctx.channel();
-		System.out.println("SimpleChatClient:" + incoming.remoteAddress()
+		System.out.println("Client:" + incoming.remoteAddress()
 				+ "在线");
 	}
 
@@ -82,7 +82,7 @@ public class NettyServerHandler extends ChannelHandlerAdapter {
 		Channel incoming = ctx.channel();
 		userInfoList.remove(channelMap.get(ctx.channel()));
 		channelMap.remove(ctx.channel());
-		System.out.println("SimpleChatClient:" + incoming.remoteAddress()
+		System.out.println("Client:" + incoming.remoteAddress()
 				+ "掉线");
 	}
 
@@ -94,7 +94,7 @@ public class NettyServerHandler extends ChannelHandlerAdapter {
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 		Channel incoming = ctx.channel();
-		log.error("SimpleChatClient:" + incoming.remoteAddress() + "异常");
+		log.error("Client:" + incoming.remoteAddress() + "异常");
 		userInfoList.remove(channelMap.get(ctx.channel()));
 		channelMap.remove(ctx.channel());
 		// 当出现异常就关闭连接

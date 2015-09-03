@@ -1,78 +1,108 @@
+/*
+ * Copyright 2012 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 package com.netty.security;
 
+import io.netty.handler.ssl.SslHandler;
 import io.netty.util.internal.SystemPropertyUtil;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-
-import java.io.FileInputStream;
 import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.security.Security;
 
-public class SecureChatSslContextFactory {
-	  private static final String PROTOCOL = "TLS";
-	    private final SSLContext _serverContext;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
 
-	    /**
-	     * Returns the singleton instance for this class
-	     */
-	    public static SecureChatSslContextFactory getInstance() {
-	        return SingletonHolder.INSTANCE;
-	    }
+/**
+ * Creates a bogus {@link SSLContext}.  A client-side context created by this
+ * factory accepts any certificate even if it is invalid.  A server-side context
+ * created by this factory sends a bogus certificate defined in {@link SecureChatKeyStore}.
+ * <p>
+ * You will have to create your context differently in a real world application.
+ *
+ * <h3>Client Certificate Authentication</h3>
+ *
+ * To enable client certificate authentication:
+ * <ul>
+ * <li>Enable client authentication on the server side by calling
+ *     {@link SSLEngine#setNeedClientAuth(boolean)} before creating
+ *     {@link SslHandler}.</li>
+ * <li>When initializing an {@link SSLContext} on the client side,
+ *     specify the {@link KeyManager} that contains the client certificate as
+ *     the first argument of {@link SSLContext#init(KeyManager[], TrustManager[], SecureRandom)}.</li>
+ * <li>When initializing an {@link SSLContext} on the server side,
+ *     specify the proper {@link TrustManager} as the second argument of
+ *     {@link SSLContext#init(KeyManager[], TrustManager[], SecureRandom)}
+ *     to validate the client certificate.</li>
+ * </ul>
+ */
+public final class SecureChatSslContextFactory {
 
-	    /**
-	     * SingletonHolder is loaded on the first execution of Singleton.getInstance() or the first access to
-	     * SingletonHolder.INSTANCE, not before.
-	     *
-	     * See http://en.wikipedia.org/wiki/Singleton_pattern
-	     */
-	    private interface SingletonHolder {
-	    	SecureChatSslContextFactory INSTANCE = new SecureChatSslContextFactory();
-	    }
+    private static final String PROTOCOL = "TLS";
+    private static final SSLContext SERVER_CONTEXT;
+    private static final SSLContext CLIENT_CONTEXT;
 
-	    /**
-	     * Constructor for singleton
-	     */
-	    private SecureChatSslContextFactory() {
-	        SSLContext serverContext = null;
-	        try {
-	            // Key store (Server side certificate)
-	            String algorithm = SystemPropertyUtil.get("ssl.KeyManagerFactory.algorithm");
-	            if (algorithm == null) {
-	                algorithm = "SunX509";
-	            }
+    static {
+        String algorithm = SystemPropertyUtil.get("ssl.KeyManagerFactory.algorithm");
+        if (algorithm == null) {
+            algorithm = "SunX509";
+        }
 
-	            try {
-	                String keyStoreFilePath = SystemPropertyUtil.get("keystore.file.path");
-	                String keyStoreFilePassword = SystemPropertyUtil.get("keystore.file.password");
+        SSLContext serverContext;
+        SSLContext clientContext;
+        try {
+            KeyStore ks = KeyStore.getInstance("JKS");
+            ks.load(SecureChatKeyStore.asInputStream(),
+                    SecureChatKeyStore.getKeyStorePassword());
 
-	                KeyStore ks = KeyStore.getInstance("JKS");
-	                FileInputStream fin = new FileInputStream(keyStoreFilePath);
-	                ks.load(fin, keyStoreFilePassword.toCharArray());
+            // Set up key manager factory to use our key store
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
+            kmf.init(ks, SecureChatKeyStore.getCertificatePassword());
 
-	                // Set up key manager factory to use our key store
-	                // Assume key password is the same as the key store file
-	                // password
-	                KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
-	                kmf.init(ks, keyStoreFilePassword.toCharArray());
+            // Initialize the SSLContext to work with our key managers.
+            serverContext = SSLContext.getInstance(PROTOCOL);
+            serverContext.init(kmf.getKeyManagers(), null, null);
+        } catch (Exception e) {
+            throw new Error(
+                    "Failed to initialize the server-side SSLContext", e);
+        }
 
-	                // Initialise the SSLContext to work with our key managers.
-	                serverContext = SSLContext.getInstance(PROTOCOL);
-	                serverContext.init(kmf.getKeyManagers(), null, null);
-	            } catch (Exception e) {
-	                throw new Error("Failed to initialize the server-side SSLContext", e);
-	            }
-	        } catch (Exception ex) {
-	            System.exit(1);
-	        } finally {
-	            _serverContext = serverContext;
-	        }
-	    }
+        try {
+            clientContext = SSLContext.getInstance(PROTOCOL);
+            clientContext.init(null, SecureChatTrustManagerFactory.getTrustManagers(), null);
+        } catch (Exception e) {
+            throw new Error(
+                    "Failed to initialize the client-side SSLContext", e);
+        }
 
-	    /**
-	     * Returns the server context with server side key store
-	     */
-	    public SSLContext serverContext() {
-	        return _serverContext;
-	    }
+        SERVER_CONTEXT = serverContext;
+        CLIENT_CONTEXT = clientContext;
+    }
+
+    public static SSLContext getServerContext() {
+        return SERVER_CONTEXT;
+    }
+
+    public static SSLContext getClientContext() {
+        return CLIENT_CONTEXT;
+    }
+
+    private SecureChatSslContextFactory() {
+        // Unused
+    }
 }

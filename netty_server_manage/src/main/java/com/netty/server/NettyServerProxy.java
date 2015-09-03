@@ -72,7 +72,7 @@ public class NettyServerProxy {
 					new PongWebSocketFrame(frame.content().retain()));
 			return;
 		}
-		//表示只是吃文本消息，不支持二进制
+		//表示只是支持文本消息，不支持二进制
 		//TODO:
 		if (!(frame instanceof TextWebSocketFrame)) {
 			throw new UnsupportedOperationException(String.format(
@@ -81,7 +81,6 @@ public class NettyServerProxy {
 
 		// Send the uppercase string back.
 		String request = ((TextWebSocketFrame) frame).text();
-	
 		ctx.channel().write(new TextWebSocketFrame(request.toUpperCase()+",欢迎使用Netty WebSocket服务，现在时刻："+new Date().toString()));
 	}
 

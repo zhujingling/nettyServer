@@ -62,6 +62,8 @@ public class Command {
 	public final static class USER {
 		// 用户中心-用户信息
 		public final static int UC_USER_INFO = 0x00A40001;
+		//用户好友
+		public final static int UC_USER_FRIEND = 0x00A40002;
 	}
 
 }

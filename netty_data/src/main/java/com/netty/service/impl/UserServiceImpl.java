@@ -30,7 +30,11 @@ public class UserServiceImpl implements IUserService {
 
 	public String getUserInfo(int userId, String passWord) {
 		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
+		if (!checkUser(userId)) {
+			return "-1";
+		}else if (checkPwd(userId, passWord)) {
+			return "0";
+		}
 		TUsers user = userDao.getUserInfo(userId, passWord);
 		JSONObject jsonObject = new JSONObject();
 		JSONArray jsonArray = new JSONArray();
@@ -75,6 +79,16 @@ public class UserServiceImpl implements IUserService {
 
 		jsonObject.put("userInfo", jsonArray);
 		return jsonObject.toString();
+	}
+
+	public boolean checkUser(int userId) {
+		// TODO Auto-generated method stub
+		return userDao.checkUser(userId);
+	}
+
+	public boolean checkPwd(int userId, String passWord) {
+		// TODO Auto-generated method stub
+		return userDao.checkPwd(userId, passWord);
 	}
 
 }
